@@ -15,7 +15,8 @@ PACE-CFMNN-2.0/
 ├── paper/                                    # Research Paper & Documentation
 │   ├── PACE-CFMNN paper (rev 311).pdf        # Full 33-page paper draft
 │   ├── PAPER_APPLICATION_AND_METHODOLOGY.md  # Detailed system architecture, math & algorithms
-│   └── PAPER_RESULTS_AND_BENCHMARKS.md       # Comprehensive empirical tables & benchmark data
+│   ├── PAPER_RESULTS_AND_BENCHMARKS.md       # Comprehensive empirical tables & benchmark data
+│   └── CFMNN_THEORY_REPAIR_AND_VERIFICATION.md # Contraction theory, iterations, cost & correctness proof
 ├── pace-cfmnn/                               # Python Package & Experimental Suite
 │   ├── pace_cfmnn/                           # Core source code
 │   │   ├── cfmnn_core.py                     # Centroid-based Fuzzy Min-Max Classifier
@@ -103,6 +104,7 @@ cf = counterfactual(model, X_test[0], target=1 - model.predict(X_test[:1])[0],
 
 * 📖 **[Application Architecture & Methodology](paper/PAPER_APPLICATION_AND_METHODOLOGY.md):** Complete mathematical formulas, hyperbox geometry, Simpson ramp equations, and certificate proofs.
 * 📈 **[Experimental Results & Benchmarks](paper/PAPER_RESULTS_AND_BENCHMARKS.md):** Full accuracy comparison tables (CFMNN vs RF, 10-NN, EBM, CART, GFMM), faithfulness AUCs, speedups, and audit logs.
+* 🛠️ **[Contraction Theory, Cost & Correctness Verification](paper/CFMNN_THEORY_REPAIR_AND_VERIFICATION.md):** Proof of the 100% cross-class tie law, 1-step closed-form shrink dynamics, 5 mathematical thresholds, computational complexity, and correctness proofs.
 * 🔍 **[Research Claims Audit](pace-cfmnn/research_audit/CLAIMS.md):** 134 programmatic claims verified against committed raw CSV runs.
 
 ---
