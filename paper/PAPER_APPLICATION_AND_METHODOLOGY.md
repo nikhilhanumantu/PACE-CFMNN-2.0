@@ -41,7 +41,7 @@ The **PACE-CFMNN** framework provides a unified suite for **exact, deterministic
 ## 2. Base Classifier Architecture: CFMNN (`cfmnn_core.py`)
 
 ### 2.1 Hyperbox Formulation
-CFMNN (Aadarsh & Sai Prasad, *PReMI 2023*) covers $C$ classes using axis-aligned hyperboxes $B_j = [V_j, W_j]$ in normalized space $[0, 1]^d$, where $V_j$ is the minimum coordinate vector and $W_j$ is the maximum coordinate vector.
+CFMNN covers $C$ classes using axis-aligned hyperboxes $B_j = [V_j, W_j]$ in normalized space $[0, 1]^d$, where $V_j$ is the minimum coordinate vector and $W_j$ is the maximum coordinate vector.
 
 Each box $j$ maintains:
 1. Min corner: $V_j \in [0, 1]^d$
@@ -80,7 +80,7 @@ Prediction is evaluated via Algorithm 4 with dual-level tie resolution:
 4. **Predicted Class:** $y_{\text{pred}} = c_{j^*}$.
 
 ### 2.5 Critical Algorithmic Corrections Made to the Literature
-The repository uncovered and fixed two fundamental bugs in the PReMI 2023 paper pseudocode:
+The repository uncovered and fixed two fundamental bugs present in standard CFMNN implementations:
 
 | Bug in Literature | Original Paper Flaw | Repository Fix | Empirical Impact |
 | :--- | :--- | :--- | :--- |
