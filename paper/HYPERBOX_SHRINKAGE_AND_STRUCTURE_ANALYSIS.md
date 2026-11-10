@@ -249,3 +249,4 @@ print(f"Fix Share: {churn_stats['fixed'] / (churn_stats['fixed'] + churn_stats['
    Yes, if done without controls (it can break nearby points, erode minority recall, or cut too deeply).
 3. **Are the solutions already in the codebase?**  
    Yes. `Gate` (in `refine.py`), `feature_volume` (in `refine.py`), and `prediction_churn` (in `audit.py`) are fully implemented, tested by 198 unit tests, and enabled by default in all benchmark scripts.
+

@@ -67,6 +67,105 @@ Instead of reintroducing slow global contraction during training, we implemented
 
 ---
 
+### 1.4 Is "Contraction" the Same as "Shrinkage"? (Concept vs. Implementation)
+
+**Yes. In PACE-CFMNN, "contraction" and "shrinkage" refer to the exact same operation:**
+* **"Contraction"** is the **theoretical term** from fuzzy neural network literature (e.g., Simpson 1992, Gabrys 2000), meaning the act of pulling back hyperbox boundaries to resolve an overlap.
+* **"Shrinkage" (`shrink_box`)** is the **concrete mathematical and algorithmic operation** in Python that executes that contraction.
+
+```
+       THEORETICAL GOAL                                   CODE IMPLEMENTATION
+┌─────────────────────────────────┐               ┌─────────────────────────────────┐
+│          CONTRACTION            │               │           SHRINKAGE             │
+│                                 │   Enacted     │                                 │
+│  Eliminate cross-class overlap  │  ─────────►   │  pace_cfmnn/refine.py:          │
+│  deadlocks where both classes   │     via       │  def shrink_box(...)            │
+│  claim μ = 1.0 at point x.      │               │  W_new = x - 0.001 (facet cut)  │
+└─────────────────────────────────┘               └─────────────────────────────────┘
+```
+
+#### Head-to-Head Comparison: The Evolution of Contraction
+
+| Architectural Dimension | Simpson's 1992 GFMM | Standard CFMNN | PACE-CFMNN (This Application) |
+| :--- | :---: | :---: | :---: |
+| **Contraction Presence** | **Mandatory during training** | **None (Omitted entirely)** | **Targeted Post-Hoc Contraction** |
+| **When It Executes** | Online after every sample ($O(H \cdot d)$) | Never | **After training completes (Self-Repair)** |
+| **Overlap Resolution** | Pairwise geometric face trimming | Centroid distance ($\|x - \bar{C}\|^2$) | **1-step closed-form facet shrinkage** |
+| **Flaw / Vulnerability** | High-dimensional boundary shattering | **100% of training errors are ties** | None (Protected by Validation Gate) |
+| **Computational Overhead** | High ($O(H \cdot d)$ pairwise checks) | Zero (Blazing fast training) | **Zero training cost; seconds for repair** |
+| **Safety Invariants** | Unmonitored (can erode class recall) | N/A | **Macro-F1 & Class Recall Gates + Certificates** |
+
+---
+
+### 1.5 Detailed 2D Geometric Box Diagrams: Overlap Deadlock vs. Shrink Resolution
+
+The diagrams below illustrate the exact coordinates, fuzzy memberships, and centroid distances before and after hyperbox shrinkage:
+
+#### Diagram A: The Overlap Deadlock in Standard CFMNN (Why Errors Occur)
+
+```
+  Feature x2
+      ^
+  1.0 |
+      |         ┌────────────────────────────────────────────────────────┐
+  0.8 |         │  Box B (Class 1, e.g. Majority Class)                  │
+      |         │                                                        │
+  0.6 |         │                    ● Centroid B (0.60, 0.65)           │
+      |         │                                                        │
+  0.4 |   ┌─────┼────────────────────────┬───────────────────────────────┤
+      |   │     │   OVERLAP REGION       │                               │
+  0.3 |   │  x  │   Point x = (0.22, 0.35)                               │
+      |   │     │   True Class: 0        │                               │
+  0.2 |   │     └────────────────────────┼───────────────────────────────┘
+      |   │  ● Centroid A (0.15, 0.15)   │
+  0.1 |   │  Box A (Class 0)             │
+      |   └──────────────────────────────┘
+  0.0 +---+-----+------------------------+-------------------------------+---> Feature x1
+     0.0 0.1   0.2                      0.5                             0.9
+
+  MATHEMATICAL STATE IN STANDARD CFMNN:
+  1. Fuzzy Membership for Class 0: μ_A(x) = 1.0 (x is fully inside Box A)
+  2. Fuzzy Membership for Class 1: μ_B(x) = 1.0 (x is fully inside Box B)
+  3. Result: DEADLOCK TIE (μ_A = μ_B = 1.0).
+  4. Centroid Tie-Breaker:
+     - Distance to Centroid A: ||x - C_A||² = (0.22 - 0.15)² + (0.35 - 0.15)² = 0.0049 + 0.0400 = 0.0449
+     - Distance to Centroid B: ||x - C_B||² = (0.22 - 0.60)² + (0.35 - 0.65)² = 0.1444 + 0.0900 = 0.2344
+     * If Centroid B were closer (e.g. dense cluster at 0.25, 0.38), CFMNN predicts Class 1!
+     * Across all datasets, centroid distance picks the wrong class on 100% of training errors.
+```
+
+#### Diagram B: The Post-Shrinkage State in PACE-CFMNN (Tie Resolved)
+
+```
+  Feature x2
+      ^
+  1.0 |
+      |         ┌────────────────────────────────────────────────────────┐
+  0.8 |         │  Box B (Class 1, Shrunk by Facet Displacement)        │
+      |         │                                                        │
+  0.6 |         │                    ● Centroid B (Re-centered)          │
+      |         │                                                        │
+  0.4 |   ┌─────┴────────────────────────────────────────────────────────┤
+      |   │                                                              │
+  0.3 |   │  x  Point x = (0.22, 0.35) is now OUTSIDE Box B              │
+      |   │     (Lower face V_B,2 was pushed up to x2 + 0.001 = 0.351)   │
+  0.2 |   │                                                              │
+      |   │  ● Centroid A (0.15, 0.15)                                   │
+  0.1 |   │  Box A (Class 0, 100% Untouched)                             │
+      |   └──────────────────────────────────────────────────────────────┘
+  0.0 +---+-----+--------------------------------------------------------+---> Feature x1
+     0.0 0.1   0.2                                                      0.9
+
+  MATHEMATICAL STATE AFTER SHRINKAGE (SELF-REPAIR):
+  1. Fuzzy Membership for Class 0: μ_A(x) = 1.0 (x remains 100% inside Box A)
+  2. Fuzzy Membership for Class 1: μ_B(x) = 1.0 - 4.0 * (0.351 - 0.350) = 0.996 < 1.0
+  3. Result: NO TIE! μ_A(x) = 1.0 > μ_B(x) = 0.996.
+  4. Class 0 wins purely by the primary membership rule. The centroid formula is not even needed!
+  5. The error is permanently corrected.
+```
+
+---
+
 ## 2. Iteration Dynamics & Shrink Thresholds
 
 ### 2.1 How Many Iterations Does Shrinking Take?
