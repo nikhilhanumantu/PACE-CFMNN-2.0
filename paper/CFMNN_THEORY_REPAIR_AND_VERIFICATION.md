@@ -86,13 +86,13 @@ Instead of reintroducing slow global contraction during training, we implemented
 
 #### Head-to-Head Comparison: The Evolution of Contraction
 
-| Architectural Dimension | Simpson's 1992 GFMM | Standard CFMNN | PACE-CFMNN (This Application) |
+| Architectural Dimension | Simpson's 1992 FMNN (GFMM: Gabrys & Bargiela, 2000) | Standard CFMNN | PACE-CFMNN (This Application) |
 | :--- | :---: | :---: | :---: |
 | **Contraction Presence** | **Mandatory during training** | **None (Omitted entirely)** | **Targeted Post-Hoc Contraction** |
 | **When It Executes** | Online after every sample ($O(H \cdot d)$) | Never | **After training completes (Self-Repair)** |
 | **Overlap Resolution** | Pairwise geometric face trimming | Centroid distance ($\|x - \bar{C}\|^2$) | **1-step closed-form facet shrinkage** |
 | **Flaw / Vulnerability** | High-dimensional boundary shattering | **100% of training errors are ties** | None (Protected by Validation Gate) |
-| **Computational Overhead** | High ($O(H \cdot d)$ pairwise checks) | Zero (Blazing fast training) | **Zero training cost; seconds for repair** |
+| **Computational Overhead** | High ($O(H \cdot d)$ pairwise checks) | Zero (Blazing fast training) | **Fast training preserved; gated repair** |
 | **Safety Invariants** | Unmonitored (can erode class recall) | N/A | **Macro-F1 & Class Recall Gates + Certificates** |
 
 ---
@@ -197,8 +197,8 @@ The shrink operator and active repair loop are strictly bounded by **5 mathemati
 | :--- | :---: | :--- | :--- |
 | **Clearance Margin (`MARGIN` / $\epsilon$)** | **`0.001` ($10^{-3}$)** | `refine.py:38` | Spatial buffer added to the face cut ($x_i \pm 0.001$). Guarantees that $x$ strictly falls outside the hyperbox boundary. |
 | **Edit Budget (`budget`)** | **`300`** | `active.py:168, 264` | Hard ceiling on the maximum number of error points the algorithm evaluates. Prevents over-fragmenting the model. |
-| **Macro-F1 Drop Gate (`max_f1_drop`)** | **`0.5` points** | `refine.py:126` | **Rollback Gate:** An edit is rejected if validation Macro-F1 falls by more than $0.5\%$: $\text{F1}_{\text{after}} < \text{F1}_{\text{before}} - 0.005$. |
-| **Class Recall Drop Gate (`max_recall_drop`)**| **`1.0` point** | `refine.py:129` | **Safety Gate:** An edit is rejected if any individual class recall drops by $>1.0\%$: $\exists c: \text{Rec}_{c,\text{after}} < \text{Rec}_{c,\text{before}} - 0.01$. |
+| **Macro-F1 Drop Gate (`max_f1_drop`)** | **`0.5` points** | `refine.py:126` | **Rollback Gate:** An edit is rejected if validation Macro-F1 falls by more than $0.5$ points: $\text{F1}_{\text{after}} < \text{F1}_{\text{before}} - 0.005$. |
+| **Class Recall Drop Gate (`max_recall_drop`)**| **`1.0` point** | `refine.py:129` | **Safety Gate:** An edit is rejected if any individual class recall drops by $>1.0$ point: $\exists c: \text{Rec}_{c,\text{after}} < \text{Rec}_{c,\text{before}} - 0.01$. |
 | **Box Capacity Factor (`box_cap_factor`)** | **`1.1` ($110\%$)** | `active.py:170` | **Complexity Gate:** Total hyperboxes cannot exceed $1.1\times$ initial count: $H_{\text{after}} \le \lfloor 1.1 \cdot H_{\text{initial}} \rfloor$. |
 | **Tie Tolerance (`tie_tol`)** | **`1e-9`** | `cfmnn_core.py:138` | Threshold for equality: $|b_A(x) - b_B(x)| \le 10^{-9}$ defines a tie and activates centroid distance arbitration. |
 
@@ -237,16 +237,17 @@ All timings measured directly on a standard laptop processor (Intel Core i7-8650
 * **PACE-SHAP vs. `shap.ExactExplainer`:** **$16\times$ to $30\times$ faster** ($19$ ms vs. $478$ ms on Shuttle; $2.5$ s vs. $53.7$ s on S1).
 
 #### Self-Repair Computational Cost:
-* A full 300-edit self-repair run completes in **$2$ to $18$ seconds** on datasets like Thyroid, Page Blocks, and Landsat.
-* It is **$10\times$ to $50\times$ cheaper** than retraining the model from scratch, because it operates strictly on local hyperbox parameters without altering untouched regions of the model.
+* A full 300-edit self-repair run takes between **$2.3$ seconds** (on smaller sets like Page Blocks) and **$1,127$ seconds** (on Skin; mean across datasets $\approx 247$ seconds).
+* **Speed Trade-off vs. Retraining:** Unlike initial training or retraining from scratch (which takes only $0.12$ to $11.5$ seconds, mean $2.5$ seconds), self-repair is **computationally slower in wall-clock time**. This is because the Validation Gate evaluates the acceptance set and checks per-class recalls after *every candidate edit*.
+* **Why Use Self-Repair Despite Slower Wall-Clock Time:** Self-repair is not meant to be faster to run than retraining; its value is that it provides **targeted, certified updates with zero collateral damage outside the impact certificate** and achieves a **$64.2\%–94.1\%$ fix share**, whereas retraining causes massive, uncontrolled global prediction churn across the entire dataset.
 
 ---
 
 ## 4. Implementation & Prediction Correctness Verification
 
-### 4.1 Proof of Implementation Correctness (Zero Code/Math Bugs)
+### 4.1 Implementation Verification: Reference Parity & Structural Invariants
 
-The codebase implements rigorous verification harnesses proving that `cfmnn_core.py` is **100% correct and bug-free**:
+The codebase implements rigorous verification harnesses demonstrating that `cfmnn_core.py` conforms strictly to the mathematical specifications:
 
 #### Proof 1: Bit-for-Bit Dual-Implementation Equivalence
 * To prevent vectorization bugs, the authors built an un-vectorized, naive reference model (`tests/naive_reference.py`) using only Python lists and basic `math` operations.

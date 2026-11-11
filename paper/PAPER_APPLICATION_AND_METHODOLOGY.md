@@ -185,16 +185,17 @@ $$\text{TopTied}(x, M) = \left\{ j \;\middle|\; b_j(x) \ge \max_k b_k(x) - \tau 
 
 Let $\Delta_{\text{before}}$ be the set of modified or deleted boxes, and $\Delta_{\text{after}}$ be modified or newly added boxes.
 
-#### Theorem (Exact Impact Certificate)
-An edit can change the prediction at input $x$ **if and only if** at least one changed box is among $x$'s top tied group before or after the edit:
+#### Theorem (Sound Impact Certificate)
+An edit can change the prediction at input $x$ **only if** at least one changed box is among $x$'s top tied group before or after the edit (a sound conservative superset):
 $$I_{\text{loose}}(x) = \left[ \bigvee_{j \in \Delta_{\text{before}}} (j \in \text{TopTied}(x, M_{\text{before}})) \right] \lor \left[ \bigvee_{k \in \Delta_{\text{after}}} (k \in \text{TopTied}(x, M_{\text{after}})) \right]$$
 
 #### Tight Certificate ($I_{\text{tight}}$)
 Drops inputs where all tied top boxes before and after belong to a single invariant class:
 $$I_{\text{tight}}(x) = I_{\text{loose}}(x) \land \left( \left| \text{Classes}(\text{TopTied}_{\text{before}}(x) \cup \text{TopTied}_{\text{after}}(x)) \right| > 1 \right)$$
 
-* **Mathematical Guarantee:** $\forall x \notin I_{\text{tight}}, \quad \text{Pred}_{\text{after}}(x) \equiv \text{Pred}_{\text{before}}(x)$.
+* **Mathematical Safety Guarantee:** $\forall x \notin I_{\text{tight}}, \quad \text{Pred}_{\text{after}}(x) \equiv \text{Pred}_{\text{before}}(x)$.
 * **Empirical Validation:** Tested across **46,153 accepted edits**; **zero predictions changed outside the certificate**.
+* **Conservativeness (Looseness):** The certificate is sound but conservative; an edit's tight certificate held 1.2%–34.6% of test rows, while only 0.2%–3.7% of those rows actually changed prediction. It is a certified safety bound, not an exact "if and only if" condition.
 
 ---
 
