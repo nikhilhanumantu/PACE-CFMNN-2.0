@@ -17,7 +17,8 @@ PACE-CFMNN-2.0/
 │   ├── PAPER_APPLICATION_AND_METHODOLOGY.md  # Detailed system architecture, math & algorithms
 │   ├── PAPER_RESULTS_AND_BENCHMARKS.md       # Comprehensive empirical tables & benchmark data
 │   ├── CFMNN_THEORY_REPAIR_AND_VERIFICATION.md # Contraction theory, iterations, cost & correctness proof
-│   └── HYPERBOX_SHRINKAGE_AND_STRUCTURE_ANALYSIS.md # Structural changes, shrink failure modes & safeguards
+│   ├── HYPERBOX_SHRINKAGE_AND_STRUCTURE_ANALYSIS.md # Structural changes, shrink failure modes & safeguards
+│   └── NON_GRADIENT_GEOMETRIC_LEARNING_VS_BACKPROPAGATION.md # Why CFMNN has zero backpropagation (geometric learning vs SGD)
 ├── pace-cfmnn/                               # Python Package & Experimental Suite
 │   ├── pace_cfmnn/                           # Core source code
 │   │   ├── cfmnn_core.py                     # Centroid-based Fuzzy Min-Max Classifier
