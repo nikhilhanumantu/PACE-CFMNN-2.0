@@ -264,3 +264,4 @@ Notice that:
 1. `model.V_` and `model.W_` hold the exact geometric coordinates.
 2. No gradient graphs (`grad`, `grad_fn`, `backward`) exist anywhere on the object.
 3. Every operation is pure NumPy vector arithmetic.
+
